@@ -145,10 +145,24 @@ class EvaTC {
     // Function  declaration
     if (exp[0]  === 'def') {
       const  [_tag, name, params, _retDel, returnTypeStr, body] = exp;
-      return env.define(
-        name,
-        this._tcFunction(params, returnTypeStr, body, env),
+
+      // We must extend the environment with the function name BEFORE
+      // evaluating the body -- this supports recursion
+      const paramTypes = params.map(([name, typeStr]) =>
+        Type.fromString(typeStr),
       );
+
+      // Predefine (for recursion)
+      env.define(
+        name,
+        new Type.Function({
+          paramTypes,
+          returnType: Type.fromString(returnTypeStr),
+        }),
+      );
+
+      // Actually validate the body
+      return this._tcFunction(params, returnTypeStr, body, env);
     }
 
     // -------------------------------------

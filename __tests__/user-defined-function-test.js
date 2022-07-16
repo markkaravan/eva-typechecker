@@ -12,7 +12,6 @@ module.exports = eva => {
 
   test(eva,
     `
-
       (square 2)
     `,
     Type.number
@@ -29,5 +28,17 @@ module.exports = eva => {
       //(calc 10 20)
     `,
     Type.fromString('Fn<number<number, number>>')
+  );
+
+  test(eva,
+    `
+      (def factorial ((x number)) -> number
+        (if (== x 1)
+          1
+          (* x (factorial (- x 1)))))
+
+      (factorial 5)
+    `,
+    Type.number
   );
 };
