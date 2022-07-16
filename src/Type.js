@@ -89,6 +89,7 @@ Type.Function = class extends Type {
         name.push('<', params.join(','), '>');
       }
       name.push('>');
+      this.name = name.join('');
     }
     return this.name;
   }

@@ -6,11 +6,17 @@ module.exports = eva => {
     `
       (def square ((x number)) -> number
         (* x x))
-
-      // (square 2)
     `,
-  Type.fromString('Fn<number<number>>')
-);
+    Type.fromString('Fn<number<number>>')
+  );
+
+  test(eva,
+    `
+
+      (square 2)
+    `,
+    Type.number
+  );
 
   test(eva,
     `
@@ -20,7 +26,7 @@ module.exports = eva => {
           (+ (* x y) z)
         ))
 
-      // (calc 10 20)
+      //(calc 10 20)
     `,
     Type.fromString('Fn<number<number, number>>')
   );

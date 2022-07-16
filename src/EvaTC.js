@@ -151,7 +151,39 @@ class EvaTC {
       );
     }
 
+    // -------------------------------------
+    // Function calls
+    if (Array.isArray(exp)) {
+      const fn = this.tc(exp[0], env);
+      const argValues = exp.slice(1);
+
+      // Passed arguments:
+      const argTypes = argValues.map(arg => this.tc(arg, env));
+
+      return this._checkFunctionCall(fn, argTypes, env, exp);
+    }
+
+
     throw `Unknown type for expression ${exp}.`;
+  }
+
+  /**
+  * Checks a block
+  */
+  _checkFunctionCall(fn, argTypes, env, exp) {
+    // Check arity:
+
+    if (fn.paramTypes.length !== argTypes.length) {
+      throw `\nFunction ${exp[0]} ${fn.getName()} expects ${
+        fn.paramTypes.length
+      } arguments, ${argTypes.length} given in ${exp}.\n`;
+    }
+
+    argTypes.forEach((argType, index) => {
+      this._expect(argType, fn.paramTypes[index], argTypes[index], exp);
+    });
+
+    return fn.returnType;
   }
 
 
@@ -164,7 +196,6 @@ class EvaTC {
     // Parameters environment and types:
     const paramsRecord = {};
     const paramTypes = [];
-
     params.forEach(([name, typeStr]) => {
       const paramType = Type.fromString(typeStr);
       paramsRecord[name] = paramType;
@@ -178,7 +209,7 @@ class EvaTC {
 
     // Check the return type:
     if (!returnType.equals(actualReturnType)) {
-      throw `Expected functiion ${body} to return  ${returnType}, but got ${actualReturnType}.`;
+      throw `Expected function ${body} to return  ${returnType}, but got ${actualReturnType}.`;
     }
 
     // Function type records its parameters  and return type,
@@ -219,15 +250,8 @@ class EvaTC {
   _createGlobal() {
     return new TypeEnvironment({
       VERSION: Type.string,
-    });
-  }
-
-  /**
-  * Creates a Global TypeEnvironment
-  */
-  _createGlobal() {
-    return new TypeEnvironment({
-      VERSION: Type.string,
+      sum: Type.fromString('Fn<number<number,number>>'),
+      square: Type.fromString('Fn<number<number>>'),
     });
   }
 
