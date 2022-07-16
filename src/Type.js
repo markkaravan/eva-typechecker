@@ -1,3 +1,5 @@
+const TypeEnvironment = require('./TypeEnvironment');
+
 /**
 *   Type class
 */
@@ -61,6 +63,11 @@ Type.string = new Type('string');
 *   Boolean type
 */
 Type.boolean = new Type('boolean');
+
+/**
+*   Null type
+*/
+Type.null = new Type('null');
 
 /**
 *   Function meta type
@@ -181,3 +188,36 @@ Type.Alias = class extends Type {
 
 
 module.exports = Type;
+
+
+
+
+Type.Class = class extends Type {
+  constructor({name, superClass = Type.null}) {
+    super(name);
+    this.superClass = superClass;
+    this.env = new TypeEnvironment({}, superClass != Type.null ? superClass.env : null);
+  }
+
+  getField(name) {
+    return this.env.lookup(name);
+  }
+
+  equals(other) {
+    if (this === other) {
+      return true;
+    }
+
+    // Aliases
+    if (other instanceof Type.Alias) {
+      return other.equals(this);
+    }
+
+    // Super class:
+    if (this.superClass != Type.null) {
+      return this.superClass.equals(other);
+    }
+
+    return false;
+  }
+};
