@@ -59,6 +59,30 @@ class EvaTC {
     }
 
     // ---------------------------------
+    // Type declarations/alias: (type  <name> <base>):
+    if (exp[0] === 'type') {
+      const [_tag, name, base] = exp;
+
+      // Type alias:
+      if (Type.hasOwnProperty(name)) {
+        throw `Type ${name} is already defined: ${Type[name]}.`;
+      }
+
+      if (!Type.hasOwnProperty(base)) {
+        throw `Type ${base} is not defined.`;
+      }
+
+      return (Type[name] = new Type.Alias({
+        name,
+        parent: Type[base],
+      }));
+    }
+
+
+
+
+
+    // ---------------------------------
     // Variable declaration: (var x 10)
     //
     // With typecheck: (var (x number) "foo") // error
@@ -185,8 +209,8 @@ class EvaTC {
 
       // Passed arguments:
       const argTypes = argValues.map(arg => this.tc(arg, env));
-
-      return this._checkFunctionCall(fn, argTypes, env, exp);
+      const cfc = this._checkFunctionCall(fn, argTypes, env, exp);
+      return cfc;
     }
 
 
