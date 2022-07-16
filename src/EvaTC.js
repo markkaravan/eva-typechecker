@@ -42,10 +42,20 @@ class EvaTC {
       return Type.string;
     }
 
+    if (this._isBoolean(exp)) {
+      return Type.boolean;
+    }
+
     // ---------------------------------
     // Math operations
     if (this._isBinary(exp)) {
       return this._binary(exp, env);
+    }
+
+    // ---------------------------------
+    // Boolean binary:
+    if (this._isBooleanBinary(exp)) {
+      return this._booleanBinary(exp, env);
     }
 
     // ---------------------------------
@@ -102,6 +112,35 @@ class EvaTC {
       return this._tcBlock(exp, blockEnv);
     }
 
+    // -------------------------------------
+    // If statement
+    if (exp[0] === 'if') {
+      const [_tag, condition, consequent, alternate] = exp;
+
+      const t1 = this.tc(condition, env);
+      this._expect(t1, Type.boolean, condition, exp);
+
+      const t2 = this.tc(consequent, env);
+      const t3 = this.tc(alternate, env);
+
+      // Both branches should be the same type
+      return this._expect(t3, t2, exp, exp);
+
+      throw `Unknown type for expression ${exp}.`;
+    }
+
+    // -------------------------------------
+    // While statement
+    if (exp[0] === 'while') {
+      const [_tag, condition, body] = exp;
+
+      // Boolean condition:
+      const t1 = this.tc(condition, env);
+      this._expect(t1, Type.boolean, condition, exp);
+
+      return this.tc(body, env);
+    }
+
     throw `Unknown type for expression ${exp}.`;
   }
 
@@ -135,6 +174,40 @@ class EvaTC {
     return new TypeEnvironment({
       VERSION: Type.string,
     });
+  }
+
+  /**
+  * Creates a Global TypeEnvironment
+  */
+  _createGlobal() {
+    return new TypeEnvironment({
+      VERSION: Type.string,
+    });
+  }
+
+  /**
+  * Whether the expression is boolean binary
+  */
+  _isBooleanBinary(exp) {
+    return (
+      exp[0] === '==' ||
+      exp[0] === '!=' ||
+      exp[0] === '>=' ||
+      exp[0] === '<=' ||
+      exp[0] === '>' ||
+      exp[0] === '<'
+    );
+  }
+
+  _booleanBinary(exp, env) {
+    this._checkArity(exp, 2);
+
+    const t1 = this.tc(exp[1], env);
+    const t2 = this.tc(exp[2], env);
+
+    this._expect(t2, t1, exp[2], exp);
+
+    return Type.boolean;
   }
 
   /**
@@ -200,6 +273,10 @@ class EvaTC {
     if (exp.length - 1 !== arity) {
       throw `\nOperator '${exp[0]}' expects ${arity} operands, ${exp.length - 1} given in ${exp}.\n`;
     }
+  }
+
+  _isBoolean(exp) {
+    return typeof exp === 'boolean' || exp === 'true' || exp === 'false';
   }
 
   _isNumber(exp) {

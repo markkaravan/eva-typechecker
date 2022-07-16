@@ -48,4 +48,9 @@ Type.number = new Type('number');
 */
 Type.string = new Type('string');
 
+/**
+*   Boolean type
+*/
+Type.boolean = new Type('boolean');
+
 module.exports = Type;

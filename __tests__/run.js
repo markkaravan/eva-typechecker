@@ -5,6 +5,8 @@ const tests = [
   require('./math-test.js'),
   require('./variable-test.js'),
   require('./block-test.js'),
+  require('./if-test.js'),
+  require('./while-test.js'),
 ];
 
 const eva = new EvaTC();
