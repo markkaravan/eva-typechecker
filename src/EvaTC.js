@@ -143,8 +143,13 @@ class EvaTC {
 
     // -------------------------------------
     // Function  declaration
+    // Suntactic sugar  for  var-lambda
     if (exp[0]  === 'def') {
-      const  [_tag, name, params, _retDel, returnTypeStr, body] = exp;
+      const varExp = this._transformDefToVarLambda(exp);
+
+      const name = exp[1];
+      const params = exp[2];
+      const returnTypeStr = exp[4];
 
       // We must extend the environment with the function name BEFORE
       // evaluating the body -- this supports recursion
@@ -162,6 +167,13 @@ class EvaTC {
       );
 
       // Actually validate the body
+      return this.tc(varExp, env);
+    }
+
+    // -------------------------------------
+    // Lambda function
+    if (exp[0] === 'lambda') {
+      const [_tag, params, _retDel, returnTypeStr, body] = exp;
       return this._tcFunction(params, returnTypeStr, body, env);
     }
 
@@ -179,6 +191,14 @@ class EvaTC {
 
 
     throw `Unknown type for expression ${exp}.`;
+  }
+
+  /**
+  * Transforms  def to var-lambda
+  */
+  _transformDefToVarLambda(exp) {
+    const [_tag, name, params, _retDel, returnTypeStr, body] = exp;
+    return ['var', name, ['lambda', params, _retDel, returnTypeStr, body]];
   }
 
   /**
