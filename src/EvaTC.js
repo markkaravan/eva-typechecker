@@ -1,10 +1,21 @@
-const Type  = require('./Type');
+const Type = require('./Type');
+const TypeEnvironment = require('./TypeEnvironment');
 
 /**
 * Typed Eva: static typechecker.
 */
 class EvaTC {
-  tc(exp) {
+  /**
+  * Creates an Eva instance with the global environment
+  */
+  constructor() {
+    /**
+    * Create the Global TypeEnvironment per Eva instance
+    */
+    this.global = this._createGlobal();
+  }
+
+  tc(exp, env = this.global) {
     //-----------------------------------
     // Self-evaluating:
 
@@ -23,10 +34,60 @@ class EvaTC {
     // ---------------------------------
     // Math operations
     if (this._isBinary(exp)) {
-      return  this._binary(exp);
+      return this._binary(exp, env);
+    }
+
+    // ---------------------------------
+    // Variable declaration: (var x 10)
+    //
+    // With typecheck: (var (x number) "foo") // error
+
+    if (exp[0] === 'var') {
+      const [_tag, name, value] = exp;
+
+      // Infer actual type:
+      const valueType = this.tc(value, env);
+
+      // With type check:
+      if (Array.isArray(name)) {
+        const [varName, typeStr] = name;
+
+        const expectedType = Type.fromString(typeStr);
+
+        // Check the type:
+        this._expect(valueType, expectedType, value, exp);
+
+        return env.define(varName, expectedType);
+      }
+
+      // Simple name:
+      return env.define(name, valueType);
+    }
+
+    // -------------------------------------
+    // Variable access: foo
+
+    if (this._isVariableName(exp)) {
+      return env.lookup(exp);
     }
 
     throw `Unknown type for expression ${exp}.`;
+  }
+
+  /**
+  * Whether the expression is a variable name
+  */
+  _isVariableName(exp) {
+    return typeof exp === 'string' && /^[+\-*<>=a-zA-Z0-9_:]+$/.test(exp);
+  }
+
+  /**
+  * Creates a new TypeEnvironment
+  */
+  _createGlobal() {
+    return new TypeEnvironment({
+      VERSION: Type.string,
+    });
   }
 
   /**
@@ -39,11 +100,11 @@ class EvaTC {
   /**
   * Binary operators
   */
-  _binary(exp) {
+  _binary(exp, env) {
     this._checkArity(exp, 2);
 
-    const t1 = this.tc(exp[1]);
-    const t2 = this.tc(exp[2]);
+    const t1 = this.tc(exp[1], env);
+    const t2 = this.tc(exp[2], env);
 
     const allowedTypes = this._getOperandTypesForOperator(exp[0]);
 

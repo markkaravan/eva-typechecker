@@ -6,16 +6,35 @@ class Type {
     this.name = name;
   }
 
+  /**
+  *  Returns name
+  */
   getName() {
     return this.name;
   }
 
+  /**
+  *  String Representation
+  */
   toString() {
     return this.getName();
   }
 
+  /**
+  *  Equals
+  */
   equals(other) {
     return this.name === other.name;
+  }
+
+  /**
+  *  From string: 'number' -> Type.number
+  */
+  static fromString(typeStr) {
+    if (this.hasOwnProperty(typeStr)) {
+      return this[typeStr];
+    }
+    throw `Unknown type: ${typeStr}`;
   }
 }
 
@@ -24,6 +43,9 @@ class Type {
 */
 Type.number = new Type('number');
 
+/**
+*   String type
+*/
 Type.string = new Type('string');
 
 module.exports = Type;
