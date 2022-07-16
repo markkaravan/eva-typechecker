@@ -15,6 +15,17 @@ class EvaTC {
     this.global = this._createGlobal();
   }
 
+  tcGlobal(exp) {
+    return this._tcBody(exp, this.global);
+  }
+
+  _tcBody(body, env) {
+    if (body[0] === 'begin') {
+      return this._tcBlock(body, env);
+    }
+    return this.tc(body, env);
+  }
+
   tc(exp, env = this.global) {
     //-----------------------------------
     // Self-evaluating:

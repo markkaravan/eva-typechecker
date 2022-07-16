@@ -1,5 +1,5 @@
 const Type = require('../src/Type');
-const {test} = require('./test-util');
+const {exec, test} = require('./test-util');
 
 module.exports = eva => {
 
@@ -42,16 +42,14 @@ module.exports = eva => {
   );
 
   // Block: variable update
+
+  exec(eva, `(var x 10)`);
+
   test(eva,
-
-    ['begin',
-      ['var', 'x', 10],
-
-      ['set', 'x', '"foo"'],
-
-      ['begin',
-        ['var', 'y', 20],
-        ['set', 'x', ['+', 'x', 'y']]]],
+    `
+      (var y 20)
+      (+ (* x 10) y)
+    `,
 
     Type.number
   );
