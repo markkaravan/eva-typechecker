@@ -66,13 +66,49 @@ class EvaTC {
 
     // -------------------------------------
     // Variable access: foo
-
     if (this._isVariableName(exp)) {
       return env.lookup(exp);
     }
 
+    // -------------------------------------
+    // Variable update: (set x 10)
+    if (exp[0] === 'set') {
+      const  [_, ref, value] = exp;
+
+      // The type of the new value should match the
+      // previous type when the variable was defined
+
+      const valueType = this.tc(value, env);
+      const varType = this.tc(ref, env);
+
+      return this._expect(valueType, varType, value, exp);
+    }
+
+    // -------------------------------------
+    // Block: sequence of expressions
+    if (exp[0] === 'begin') {
+      const blockEnv = new TypeEnvironment({}, env);
+      return this._tcBlock(exp, blockEnv);
+    }
+
     throw `Unknown type for expression ${exp}.`;
   }
+
+  /**
+  * Checks a block
+  */
+  _tcBlock(block, env) {
+    let result;
+
+    const [_tag, ...expressions] = block;
+
+    expressions.forEach(exp =>  {
+      result = this.tc(exp, env);
+    });
+
+    return result;
+  }
+
 
   /**
   * Whether the expression is a variable name
