@@ -141,8 +141,54 @@ class EvaTC {
       return this.tc(body, env);
     }
 
+    // -------------------------------------
+    // Function  declaration
+    if (exp[0]  === 'def') {
+      const  [_tag, name, params, _retDel, returnTypeStr, body] = exp;
+      return env.define(
+        name,
+        this._tcFunction(params, returnTypeStr, body, env),
+      );
+    }
+
     throw `Unknown type for expression ${exp}.`;
   }
+
+
+  /**
+  * Checks a block
+  */
+  _tcFunction(params, returnTypeStr, body, env) {
+    const returnType = Type.fromString(returnTypeStr);
+
+    // Parameters environment and types:
+    const paramsRecord = {};
+    const paramTypes = [];
+
+    params.forEach(([name, typeStr]) => {
+      const paramType = Type.fromString(typeStr);
+      paramsRecord[name] = paramType;
+      paramTypes.push(paramType);
+    });
+
+    const fnEnv = new TypeEnvironment(paramsRecord, env);
+
+    // Check  the body in the extended environment:
+    const actualReturnType = this._tcBody(body, fnEnv);
+
+    // Check the return type:
+    if (!returnType.equals(actualReturnType)) {
+      throw `Expected functiion ${body} to return  ${returnType}, but got ${actualReturnType}.`;
+    }
+
+    // Function type records its parameters  and return type,
+    // so we can use the to validate  function calls:
+    return new Type.Function({
+      paramTypes,
+      returnType,
+    });
+  }
+
 
   /**
   * Checks a block
