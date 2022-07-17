@@ -63,6 +63,13 @@ class EvaTC {
     if (exp[0] === 'type') {
       const [_tag, name, base] = exp;
 
+      // Union type: (or number string)
+      if (base[0] === 'or') {
+        const options = base.slice(1);
+        const optionTypes = options.map(option => Type.fromString(option));
+        return (Type[name] = new Type.Union({name, optionTypes}));
+      }
+
       // Type alias:
       if (Type.hasOwnProperty(name)) {
         throw `Type ${name} is already defined: ${Type[name]}.`;
@@ -94,6 +101,54 @@ class EvaTC {
 
       return classType;
     }
+
+    // ---------------------------------
+    // Class instantiation: (new <Class> <Argments>...)
+
+    if (exp[0] === 'new') {
+      const [_tag, className, ...argValues] = exp;
+
+      const classType = Type[className];
+
+      if (classType == null) {
+        throw `Unknown class ${name}.`;
+      }
+
+      const argTypes = argValues.map(arg => this.tc(arg, env));
+
+      return  this._checkFunctionCall(
+        classType.getField('constructor'),
+        [classType, ...argTypes],
+        env,
+        exp,
+      );
+    }
+
+    // ---------------------------------
+    // Super  expressions: (super <ClassName>)
+    if (exp[0] === 'super') {
+      const [_tag, className] = exp;
+
+      const classType = Type[className];
+
+      if (classType == null) {
+        throw `Unknown class ${name}.`;
+      }
+
+      return classType.superClass;
+    }
+
+    // ---------------------------------
+    // Property access: (prop <instance> <name>)
+    if (exp[0] === 'prop') {
+      const [_tag, instance, name] = exp;
+
+      const instanceType = this.tc(instance, env);
+
+      return instanceType.getField(name);
+    }
+
+
 
 
 
@@ -135,6 +190,18 @@ class EvaTC {
     if (exp[0] === 'set') {
       const  [_, ref, value] = exp;
 
+      // 1. Assignment to a property: (set (prop <instance> <propName>) <value>)
+      if (ref[0] === 'prop')  {
+        const [_tag, instance, propName] = ref;
+        const instanceType = this.tc(instance, env);
+
+        const valueType = this.tc(value, env);
+        const propType = instanceType.getField(propName);
+
+        return this._expect(valueType, propType, value, exp);
+      }
+
+      // 2.  Simple Assignment
       // The type of the new value should match the
       // previous type when the variable was defined
 
@@ -156,10 +223,31 @@ class EvaTC {
     if (exp[0] === 'if') {
       const [_tag, condition, consequent, alternate] = exp;
 
+      // Boolean  conditions:
       const t1 = this.tc(condition, env);
       this._expect(t1, Type.boolean, condition, exp);
 
-      const t2 = this.tc(consequent, env);
+      // Initially the  environment used to tc  consequent
+      // is the same as the main env, however it can be updated
+      // for the union type with type casting:
+      let consequentEnv = env;
+
+      // Check if the condition is a type casting rule
+      // This  is used with  union  types to make a  type concrete
+      //
+      // (if (== (typeof foo) "striing") ...)
+      //
+      if (this._isTypeCastCondition(condition)) {
+        const  [name, specificType] = this._getSpecifiedType(condition);
+
+        // Update environment with the concrete type for this name:
+        consequentEnv = new TypeEnvironment(
+          {[name]: Type.fromString(specificType)},
+          env,
+        );
+      }
+
+      const t2 = this.tc(consequent, consequentEnv);
       const t3 = this.tc(alternate, env);
 
       // Both branches should be the same type
@@ -241,6 +329,30 @@ class EvaTC {
   }
 
   /**
+  * Used with union types to make a type concrete
+  *
+  * (if (== (typeof foo) "string")...)
+  *
+  */
+  _isTypeCastCondition(condition) {
+    const [op, lhs] = condition;
+    return op === '=='  && lhs[0] === 'typeof';
+  }
+
+  /**
+  * Returns a specific type after casting
+  *
+  * Used for type narrowing
+  *
+  */
+  _getSpecifiedType(condition) {
+    const [_op, [_typeof, name], specificType] = condition;
+
+    // Return name and the new type (stripping quotes).
+    return [name, specificType.slice(1,  -1)];
+  }
+
+  /**
   * Checks a block
   */
   _checkFunctionCall(fn, argTypes, env, exp) {
@@ -253,6 +365,9 @@ class EvaTC {
     }
 
     argTypes.forEach((argType, index) => {
+      if (fn.paramTypes[index] === Type.any) {
+        return;
+      }
       this._expect(argType, fn.paramTypes[index], argTypes[index], exp);
     });
 
@@ -325,6 +440,8 @@ class EvaTC {
       VERSION: Type.string,
       sum: Type.fromString('Fn<number<number,number>>'),
       square: Type.fromString('Fn<number<number>>'),
+
+      typeof: Type.fromString('Fn<string<any>>'),
     });
   }
 
@@ -396,9 +513,22 @@ class EvaTC {
   }
 
   _expectOperatorType(type_, allowedTypes, exp) {
-    if (!allowedTypes.some(t => t.equals(type_))) {
-      throw `\nUnexpected type: ${type_} in ${exp}, allowed: ${allowedTypes}`;
+    // For union type, *all* sub-types should support this operation:
+    if (type_ instanceof Type.Union) {
+      if (type_.includesAll(allowedTypes)) {
+        return;
+      }
     }
+
+    // Other types:
+    else {
+      if (allowedTypes.some(t => t.equals(type_))) {
+        return;
+      }
+    }
+
+    throw `\nUnexpected type: ${type_} in ${exp}, allowed: ${allowedTypes}`;
+
   }
 
   _expect(actualType, expectedType, value, exp) {
