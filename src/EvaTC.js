@@ -272,8 +272,10 @@ class EvaTC {
     // Function  declaration
     // Suntactic sugar  for  var-lambda
     if (exp[0]  === 'def') {
+
+      const varExp = this._transformDefToVarLambda(exp);
+
       if (!this._isGenericDefFunction(exp)) {
-        const varExp = this._transformDefToVarLambda(exp);
 
         const name = exp[1];
         const params = exp[2];
@@ -295,7 +297,7 @@ class EvaTC {
         );
       }
       // Actually validate the body
-      return this.tc(exp, env);
+      return this.tc(varExp, env);
     }
 
     // -------------------------------------
@@ -360,7 +362,7 @@ class EvaTC {
   * (def foo <K> ((x K)) ->  K (+ x x))
   */
   _isGenericLambdaFunction(exp) {
-    return exp.length === 6 && /^<[^>]+>$/.test(exp[2]);
+    return exp.length === 6 && /^<[^>]+>$/.test(exp[1]);
   }
 
 
@@ -379,8 +381,8 @@ class EvaTC {
   _transformDefToVarLambda(exp) {
     // 1. Generic functions:
     if (this._isGenericDefFunction(exp)) {
-      const [_tag, name, genericTypesStr, _retDel, returnTypeStr, body] = exp;
-      return ['var', name, ['lambda', genericTypesStr, _retDel, returnTypeStr, body]];
+      const [_tag, name, genericTypesStr, params, _retDel, returnTypeStr, body] = exp;
+      return ['var', name, ['lambda', genericTypesStr, params, _retDel, returnTypeStr, body]];
     }
 
     // 2. Simple function

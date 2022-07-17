@@ -98,7 +98,6 @@ Type.Function = class extends Type {
   * Fn<number<number, number>> - function which returns a number and accepts two numbers
   */
   getName() {
-    console.log("** THis: ", this);
     if (this.name == null) {
       const name = ['Fn<', this.returnType.getName()];
       // Params.
