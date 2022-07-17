@@ -13,6 +13,7 @@ const tests = [
   require('./alias-test.js'),
   require('./class-test.js'),
   require('./union-test.js'),
+  // require('./generic-test.js'),
 ];
 
 const eva = new EvaTC();

@@ -98,6 +98,7 @@ Type.Function = class extends Type {
   * Fn<number<number, number>> - function which returns a number and accepts two numbers
   */
   getName() {
+    console.log("** THis: ", this);
     if (this.name == null) {
       const name = ['Fn<', this.returnType.getName()];
       // Params.
@@ -269,5 +270,23 @@ Type.Union = class extends Type {
 
     // Anything else:
     return this.optionTypes.some(t => t.equals(other));
+  }
+};
+
+
+/**
+*   Generic function type.
+*
+*   Generic functiions create normal function types
+*   when a function is called
+*/
+Type.GenericFunction = class extends Type {
+  constructor({name=null, genericTypesStr, params, returnType, body, env}) {
+    super(`${name || 'lambda'} <${genericTypesStr}>`);
+    this.genericTypes = genericTypesStr.split(',');
+    this.params = params;
+    this.returnType = returnType;
+    this.body = body;
+    this.env = env;
   }
 };
