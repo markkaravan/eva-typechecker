@@ -696,7 +696,7 @@ class EvaTC {
   }
 
   _throw(actualType, expectedType, value, exp) {
-    throw `\nExpected "${expectedType}" type for ${value} in ${exp}, but got "${actualType}" type.\n`;
+    throw `\nExpected "${expectedType}" type for ${value} in ${JSON.stringify(exp)}, but got "${actualType}" type.\n`;
   }
 
   _checkArity(exp, arity) {
